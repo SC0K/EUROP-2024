@@ -1,5 +1,4 @@
-% Version 10 - ADDING SCENARIOS TO quadraic CBF
-% I think this is better than the lincear (absolute value) version
+% Version 1 - 4Vehicles with bycicle dynamics.
 
 yalmip('clear')
 clear all
@@ -53,7 +52,7 @@ state = [0 1 0 0;
          -1 0 0 0]*2 + [0 0 -pi/2 0;
          0 0 pi/2 0;
          0 0 0 0;
-         0 0 pi 0];
+         0 0 0 0];
 
 
 
@@ -61,7 +60,7 @@ state = [0 1 0 0;
 %% MPC data 
 Q = 5*eye(nx);
 R = 1*eye(nu);
-eta = 0.1;
+eta = 0.3;
 N = 5;  % MPC Horizon
 
 %% Define the mean and standard deviation for disturbance
@@ -195,7 +194,7 @@ for drone_idx = 1:nd
     y_positions = squeeze(X(2,  drone_idx, :));  % y positions
     
     % Plot the trajectory with lines
-    plot(x_positions, y_positions, '-', 'LineWidth', 3,'DisplayName', ['Drone ' num2str(drone_idx)]);
+    plot(x_positions, y_positions, '-', 'LineWidth', 3,'DisplayName', ['Vehicle ' num2str(drone_idx)]);
 end
 
 % Plot initial and final positions with distinct markers
@@ -207,16 +206,16 @@ for drone_idx = 1:nd
     final_y = X(2,  drone_idx, T+1);
     
     % Plot the initial position
-    plot(initial_x, initial_y, 's', 'MarkerSize', 15, 'DisplayName', ['Initial Position Drone ' num2str(drone_idx)]);
+    plot(initial_x, initial_y, 's', 'MarkerSize', 15, 'DisplayName', ['Initial Position Vehicle ' num2str(drone_idx)]);
     
     % Plot the final position
-    plot(final_x, final_y, 'd', 'MarkerSize', 15, 'DisplayName', ['Final Position Drone ' num2str(drone_idx)]);
+    plot(final_x, final_y, 'd', 'MarkerSize', 15, 'DisplayName', ['Final Position Vehicle ' num2str(drone_idx)]);
 end
 
 % Add labels and legend
 xlabel('X Position');
 ylabel('Y Position');
-title('Trajectories of Drones');
+title('Trajectories of Vehicles');
 legend('show');
 grid on;
 hold off;
