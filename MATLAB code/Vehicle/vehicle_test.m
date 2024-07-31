@@ -65,9 +65,10 @@ function [newState, a_d, delta] = bicycleModelPredict(currentState, u, L, dt)
     theta = currentState(3);
     v = currentState(4);
 
+
     % Compute desired heading
     theta_d = atan2(u(2), u(1));
-
+    
     % Compute desired longitudinal acceleration
     a_d = sqrt(u(1)^2 + u(2)^2);
     if dot([u(1), u(2)], [cos(theta), sin(theta)]) < 0
@@ -80,6 +81,14 @@ function [newState, a_d, delta] = bicycleModelPredict(currentState, u, L, dt)
     else
         delta = atan2(L * sin(theta_d - theta), v);
     end
+    %% Alternative method    
+%     syms acc del
+%     eqns = [u(1) == (L*sqrt(0.25+1/tan(del)^2))/(L/tan(del))*acc*cos(theta+ atan(tan(del)/2)) + v^2/(L*sqrt(0.25+1/tan(del)^2))*cos(theta+ atan(tan(del)/2)+pi/2),
+%         u(2) == (L*sqrt(0.25+1/tan(del)^2))/(L/tan(del))*acc*sin(theta+ atan(tan(del)/2)) + v^2/(L*sqrt(0.25+1/tan(del)^2))*sin(theta+ atan(tan(del)/2)+pi/2)];
+%     S = solve(eqns,[acc, del]);
+%     
+%     delta = S.del
+%     a_d = S.acc
 
     % Update state using the bicycle model dynamics
     newState = bicycleModelDynamics(currentState, a_d, delta, dt, L);
@@ -107,16 +116,26 @@ function newState = bicycleModelDynamics(currentState, a, delta, dt, L)
     x_dot = v * cos(theta);
     y_dot = v * sin(theta);
     theta_dot = (v / L) * tan(delta);
-    v_dot = a;
+    %% Alternative method
+%     phi = atan(tan(delta)/2);
+%     rc = L / sqrt(1/4+ 1/tan(delta)^2);
+%     r0 = L/tan(delta);
+% 
+%     % Equations of motion
+%     x_dot = v * cos(theta+phi);
+%     y_dot = v * sin(theta+phi);
+%     
+%     theta_dot = v / rc;
+%     v_dot = a*rc/r0;
     
-    % Update state
+    %% Update state
     x = x + x_dot * dt;
     y = y + y_dot * dt;
     theta = theta + theta_dot * dt;
     v = v + v_dot * dt;
     
     % Ensure theta stays within -pi to pi
-    theta = mod(theta + pi, 2*pi) - pi;
+%     theta = mod(theta + pi, 2*pi) - pi;
     
     % Return the updated state
     newState = [x; y; theta; v];

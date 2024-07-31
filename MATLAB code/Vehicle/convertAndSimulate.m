@@ -19,7 +19,6 @@ function [newState, a_d, delta] = convertAndSimulate(currentState, a_x, a_y, dt,
     
     % Compute desired heading
     theta_d = atan2(a_y, a_x);
-
     
     % Compute steering angle
     if v == 0
@@ -29,11 +28,16 @@ function [newState, a_d, delta] = convertAndSimulate(currentState, a_x, a_y, dt,
     end
 
     % Compute desired longitudinal acceleration
-    if abs(theta_d - theta) > deg2rad(90)
-        a_d = -sqrt(a_x^2 + a_y^2);
-    else
-        a_d = sqrt(a_x^2 + a_y^2);
+    a_d = sqrt(a_x^2 + a_y^2);
+    if dot([a_x, a_y], [cos(theta), sin(theta)]) < 0
+        a_d = -a_d; % Make acceleration negative if in the opposite direction of heading
     end
+
+%     if abs(theta_d - theta) > deg2rad(90)
+%         a_d = -sqrt(a_x^2 + a_y^2);
+%     else
+%         a_d = sqrt(a_x^2 + a_y^2);
+%     end
 
     % Update state using the bicycle model dynamics
     newState = bicycleModelDynamics(currentState, a_d, delta, dt, L);
