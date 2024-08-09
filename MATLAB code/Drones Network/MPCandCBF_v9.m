@@ -15,14 +15,14 @@ B0 = [h^2/2 0;
       0 h];
 nx = 4; % Number of states
 nu = 2; % Number of inputs
-nd = 4; % Number of drones
+nd = 2; % Number of drones
 T = 100; % Number of time steps
 
 m = 119; % Number of scenarios
 r1 = 0.5;     % Drone proximity limits
 r2 = 0.5;
 gamma = 0.2;
-a_lim = 4;  % acceleration limit m/s^2
+a_lim = 1;  % acceleration limit m/s^2
 
 % 4 Drones
 X = zeros(nx, nd, T+1);  % MegaState matrix (current states, drone index, Time step)
@@ -121,7 +121,7 @@ for t = 1:T
         
 %% Simulation
 options = sdpsettings('verbose', 0,'cache', -1,'solver','ipopt');
-diagnostics = optimize(constraints,objective);
+diagnostics = optimize(constraints,objective,options);
 if diagnostics.problem == 0
  disp('Solver thinks it is feasible')
 elseif diagnostics.problem == 1

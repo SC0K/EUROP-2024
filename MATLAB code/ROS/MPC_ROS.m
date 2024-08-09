@@ -1,8 +1,9 @@
 % Initialize ROS
 rosinit;
-
+clear all
+yalmip('clear')
 % Initialize variables (as in your provided code)
-h = 0.1;  % Sample time
+h = 0.3;  % Sample time
 A0 = [1 0 h 0; 0 1 0 h; 0 0 1 0; 0 0 0 1];
 B0 = [h^2/2 0; 0 h^2/2; h 0; 0 h];
 nx = 4;  % Number of states
@@ -13,7 +14,7 @@ m = 119;  % Number of scenarios
 r1 = 0.5;  % Drone proximity limits
 r2 = 0.5;
 gamma = 0.2;
-a_lim = 1;  % Acceleration limit m/s^2
+a_lim = 15;  % Acceleration limit m/s^2
 
 % Target destinations
 targets = [3 0 0 0; -3 0 0 0]';
@@ -63,7 +64,7 @@ global state1 state2;
 state1 = zeros(4, 1);  % [pos_x; pos_y; vel_x; vel_y] for robot 1
 state2 = zeros(4, 1);  % [pos_x; pos_y; vel_x; vel_y] for robot 2
 
-state2 = [20;0;0;0];
+state2 = [0;0;0;0];
 
 % Threshold for stopping condition
 threshold = 0.1;  % Distance to target
@@ -72,6 +73,7 @@ threshold = 0.1;  % Distance to target
 while true
     % Calculate control inputs
     tic
+    state1
     U1 = DI_controller(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{1}, disturbance(:, :, 1), targets(:, 1))
     % U2 = DI_controller(state2, state1, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, disturbance(:, :, 2), targets(:, 2));
 
@@ -84,14 +86,14 @@ while true
     msg_y1.Data = U1(2);
     send(cmd_accel_y_pub1, msg_y1);
 
-    % Publish control inputs for robot 2
-    msg_x2 = rosmessage(cmd_accel_x_pub2);
-    msg_x2.Data = U2(1);
-    send(cmd_accel_x_pub2, msg_x2);
-
-    msg_y2 = rosmessage(cmd_accel_y_pub2);
-    msg_y2.Data = U2(2);
-    send(cmd_accel_y_pub2, msg_y2);
+    % % Publish control inputs for robot 2
+    % msg_x2 = rosmessage(cmd_accel_x_pub2);
+    % msg_x2.Data = U2(1);
+    % send(cmd_accel_x_pub2, msg_x2);
+    % 
+    % msg_y2 = rosmessage(cmd_accel_y_pub2);
+    % msg_y2.Data = U2(2);
+    % send(cmd_accel_y_pub2, msg_y2);
 
     % Check if both robots have reached their targets
     dist1 = norm(state1(1:2) - targets(1:2, 1));
@@ -119,8 +121,18 @@ function odom_callback1(~, msg)
     % Update state1 based on the received odometry message
     state1(1) = msg.Pose.Pose.Position.X;
     state1(2) = msg.Pose.Pose.Position.Y;
-    state1(3) = msg.Twist.Twist.Linear.X;
-    state1(4) = msg.Twist.Twist.Linear.Y;
+    v_forward = msg.Twist.Twist.Linear.X;
+    % Example quaternion [w, x, y, z]
+    quaternion = [msg.Pose.Pose.Orientation.W, msg.Pose.Pose.Orientation.X, msg.Pose.Pose.Orientation.Y, msg.Pose.Pose.Orientation.Z];
+    
+    % Convert quaternion to Euler angles (in degrees)
+    euler_angles = quat2eul(quaternion);
+    
+    % Convert yaw to radians if needed
+    yaw_rad = deg2rad(euler_angles(1));
+
+    state1(3) = v_forward*sin(yaw_rad);
+    state1(4) = v_forward*cos(yaw_rad);
 end
 
 % Callback function for '/robot2/odom' topic

@@ -14,14 +14,14 @@ B0 = [h^2/2 0;
       0 h];
 nx = 4; % Number of states
 nu = 2; % Number of inputs
-nd = 4; % Number of drones
+nd = 3; % Number of drones
 T = 100; % Number of time steps
 
 m = 119; % Number of scenarios
 r1 = 0.5;     % Drone proximity limits
 r2 = 0.5;
 gamma = 0.2;
-a_lim = 4;  % acceleration limit m/s^2
+a_lim = 0.05;  % acceleration limit m/s^2
 
 % 4 Drones
 X = zeros(nx, nd, T+1);  % MegaState matrix (current states, drone index, Time step)
@@ -126,7 +126,7 @@ for t = 1:T
                     hk1 = (X_mpc(1,1) - X(1,combinations(d,c),t))^2 + (X_mpc(2,1) - X(2,combinations(d,c),t))^2 - r2^2;     % Barrier function at k+1
                     hkk1 = (X_mpc(1,1) - 0.5)^2 + (X_mpc(2,1))^2 - r1^2;
                     constraints = [constraints, 0 <= hk1-hk+gamma*hk];
-%                     constraints = [constraints, 0 <= hkk1-hkk+gamma*hkk];
+%                     constraints = [constraints, 0 <= hkk1-hkk+gamma*hkk];         % Constraints for the circle obstacle
                 end
                 objective = objective + eta*(X_mpc_normal-targets(:,d))'*QN*(X_mpc_normal-targets(:,d));
             end
