@@ -18,11 +18,12 @@ function [U1,U2] = DI_controller1(state_main,state1,N, A0, B0, Q, R, QN, r1, r2,
         constraints = [constraints, -a_lim <= u{k} <= a_lim, 0 <= hk1-hk+gamma*hk];
 
         constraints = [constraints, -0.1<=state_main_update(3)<=0.1, -0.1<=state_main_update(4)<=0.1];  % Speed limits
-        if abs(state_main(2))<0.1 && abs(state_main(1)) > r_roundabout + D/2
-            constraints = [constraints, -D/3<=state_main_update(2)<=D/3];
+        if abs(state_main(2))<D/4 && abs(state_main(1)) > r_roundabout + D/4
+            constraints = [constraints, -D/4<=state_main_update(2)<=D/4];
         else
+            
             constraints = [constraints, 0 <= hkk1 - hkk+ gamma*hkk];
-        end
+    end
     objective = objective + eta*(state_main_normal-target)'*QN*(state_main_normal-target);
     options = sdpsettings('verbose', 0,'cache', -1,'solver','ipopt');
     diagnostics = optimize(constraints,objective,options);

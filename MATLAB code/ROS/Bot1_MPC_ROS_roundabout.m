@@ -12,13 +12,13 @@ nu = 2;  % Number of inputs
 nd = 2;  % Number of drones
 
 m = 119;  % Number of scenarios
-r1 = 0.7;  % Drone proximity limits
-r2 = 0.7;
-gamma = 0.2;
+r1 = 0.6;  % Drone proximity limits
+r2 = 0.6;
+gamma = 0.1;
 a_lim = 0.5;  % Acceleration limit m/s^2
 
 % Target destinations
-targets = [5.0 0 0 0; -5.0 0 0 0]';
+targets = [5.0 0.0 0 0; -5.0 0 0 0]';
 Q = 5 * eye(nx);
 R = eye(nu);
 eta = 0.1;
@@ -55,12 +55,15 @@ n=0;
 t_total=0;
 
 % ROS Publishers
-cmd_accel_x_pub1 = rospublisher('/robot1/accel_x', 'std_msgs/Float32');
-cmd_accel_y_pub1 = rospublisher('/robot1/accel_y', 'std_msgs/Float32');
+cmd_accel_x_pub2 = rospublisher('/robot1/accel_x', 'std_msgs/Float32');
+cmd_accel_y_pub2 = rospublisher('/robot1/accel_y', 'std_msgs/Float32');
 
 % ROS Subscribers
-odom_sub1 = rossubscriber('/robot1/odom', 'nav_msgs/Odometry', @odom_callback1);
 odom_sub2 = rossubscriber('/robot2/odom', 'nav_msgs/Odometry', @odom_callback2);
+odom_sub1 = rossubscriber('/robot1/odom', 'nav_msgs/Odometry', @odom_callback1);
+
+States_history1 = [];
+States_history2 = [];
 
 % State Variables
 global state1 state2;
@@ -74,22 +77,22 @@ threshold = 0.1;  % Distance to target
 while true
     % Calculate control inputs
     tic
-    [U1,U1_1] = DI_controller1(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{1}, disturbance(:, :, 1), targets(:, 1), 2.75, 1.0);
-    if all(~isnan(U1(:))) && all(~isnan(U1_1(:)))
-        % Publish control inputs for robot 1
-        msg_x1 = rosmessage(cmd_accel_x_pub1);
-        msg_x1.Data = U1(1);
-        send(cmd_accel_x_pub1, msg_x1);
+    [U2,U2_1] = DI_controller1(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{1}, disturbance(:, :, 1), targets(:, 1), 2.5, 0.1);
+    if all(~isnan(U2(:))) && all(~isnan(U2_1(:)))
     
-        msg_y1 = rosmessage(cmd_accel_y_pub1);
-        msg_y1.Data = U1(2);
-        send(cmd_accel_y_pub1, msg_y1);
+        % Publish control inputs for robot 2
+        msg_x2 = rosmessage(cmd_accel_x_pub2);
+        msg_x2.Data = U2(1);
+        send(cmd_accel_x_pub2, msg_x2);
+    
+        msg_y2 = rosmessage(cmd_accel_y_pub2);
+        msg_y2.Data = U2(2);
+        send(cmd_accel_y_pub2, msg_y2);
     
         % Check if both robots have reached their targets
-        dist1 = norm(state1(1:2) - targets(1:2, 1));
+        dist2 = norm(state2(1:2) - targets(1:2, 2));
 
-
-        if dist1 < threshold 
+        if dist2 < threshold
             disp('Both robots have reached their targets.');
             break;
         end
@@ -100,21 +103,27 @@ while true
             t_max = elapsed_time;
         end
         n=n+1;
+        disp("elapsed time is ")
+        disp(elapsed_time)
         t_total = elapsed_time + t_total;
         t_average = t_total/n;
         pause_time = 0.4 - elapsed_time;
         if pause_time > 0
             pause(pause_time);
         end
-            % Publish control inputs for robot 1
-        msg_x1 = rosmessage(cmd_accel_x_pub1);
-        msg_x1.Data = U1_1(1);
-        send(cmd_accel_x_pub1, msg_x1);
     
-        msg_y1 = rosmessage(cmd_accel_y_pub1);
-        msg_y1.Data = U1_1(2);
-        send(cmd_accel_y_pub1, msg_y1);
+        % Publish control inputs for robot 2
+        msg_x2 = rosmessage(cmd_accel_x_pub2);
+        msg_x2.Data = U2_1(1);
+        send(cmd_accel_x_pub2, msg_x2);
     
+        msg_y2 = rosmessage(cmd_accel_y_pub2);
+        msg_y2.Data = U2_1(2);
+        send(cmd_accel_y_pub2, msg_y2);
+        pause(0.4);
+        States_history1 = [States_history1; state1(1), state1(2)];
+        States_history2 = [States_history2; state2(1), state2(2)];
+
     end
 end
 

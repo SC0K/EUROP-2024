@@ -1,4 +1,5 @@
 % Initialize ROS
+rosshutdown
 rosinit;
 clear all
 yalmip('clear')
@@ -54,10 +55,8 @@ n=0;
 t_total=0;
 
 % ROS Publishers
-cmd_accel_x_pub1 = rospublisher('/robot1/accel_x', 'std_msgs/Float32');
-cmd_accel_y_pub1 = rospublisher('/robot1/accel_y', 'std_msgs/Float32');
-cmd_accel_x_pub2 = rospublisher('/robot2/accel_x', 'std_msgs/Float32');
-cmd_accel_y_pub2 = rospublisher('/robot2/accel_y', 'std_msgs/Float32');
+cmd_position_pub1 = rospublisher('/robot1/move_base_simple/goal', 'geometry_msgs/PoseStamped');
+cmd_position_pub2 = rospublisher('/robot2/move_base_simple/goal', 'geometry_msgs/PoseStamped');
 
 % ROS Subscribers
 odom_sub1 = rossubscriber('/robot1/odom', 'nav_msgs/Odometry', @odom_callback1);
@@ -75,26 +74,23 @@ threshold = 0.1;  % Distance to target
 while true
     % Calculate control inputs
     tic
-    [U1,U1_1] = DI_controller1(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{1}, disturbance(:, :, 1), targets(:, 1), 2.75, 1.1);
+    % [U1,U1_1] = DI_controller1(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{1}, disturbance(:, :, 1), targets(:, 1), 2.75, 1.1);
     [U2,U2_1] = DI_controller1(state2, state1, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, disturbance(:, :, 2), targets(:, 2), 2.75, 1.1);
-    if all(~isnan(U1(:))) && all(~isnan(U1_1(:))) && all(~isnan(U2(:))) && all(~isnan(U2_1(:)))
-        % Publish control inputs for robot 1
-        msg_x1 = rosmessage(cmd_accel_x_pub1);
-        msg_x1.Data = U1(1);
-        send(cmd_accel_x_pub1, msg_x1);
+    if  all(~isnan(U2(:))) && all(~isnan(U2_1(:)))
+        % P1 = A0*state1+B0*U1;
+        P2 = A0*state2+B0*U2;
+        % % Publish control inputs for robot 1
+        % msg_p1 = rosmessage(cmd_position_pub1);
+        % msg_p1.Pose.Position.X = P1(1);
+        % msg_p1.Pose.Position.Y = P1(2);
+        % send(cmd_position_pub1, msg_p1);
     
-        msg_y1 = rosmessage(cmd_accel_y_pub1);
-        msg_y1.Data = U1(2);
-        send(cmd_accel_y_pub1, msg_y1);
     
         % Publish control inputs for robot 2
-        msg_x2 = rosmessage(cmd_accel_x_pub2);
-        msg_x2.Data = U2(1);
-        send(cmd_accel_x_pub2, msg_x2);
-    
-        msg_y2 = rosmessage(cmd_accel_y_pub2);
-        msg_y2.Data = U2(2);
-        send(cmd_accel_y_pub2, msg_y2);
+        msg_p2 = rosmessage(cmd_position_pub2);
+        msg_p2.Pose.Position.X = P2(1);
+        msg_p2.Pose.Position.Y = P2(2);
+        send(cmd_position_pub2, msg_p2);
     
         % Check if both robots have reached their targets
         dist1 = norm(state1(1:2) - targets(1:2, 1));
@@ -117,24 +113,6 @@ while true
         if pause_time > 0
             pause(pause_time);
         end
-            % Publish control inputs for robot 1
-        msg_x1 = rosmessage(cmd_accel_x_pub1);
-        msg_x1.Data = U1_1(1);
-        send(cmd_accel_x_pub1, msg_x1);
-    
-        msg_y1 = rosmessage(cmd_accel_y_pub1);
-        msg_y1.Data = U1_1(2);
-        send(cmd_accel_y_pub1, msg_y1);
-    
-        % Publish control inputs for robot 2
-        msg_x2 = rosmessage(cmd_accel_x_pub2);
-        msg_x2.Data = U2_1(1);
-        send(cmd_accel_x_pub2, msg_x2);
-    
-        msg_y2 = rosmessage(cmd_accel_y_pub2);
-        msg_y2.Data = U2_1(2);
-        send(cmd_accel_y_pub2, msg_y2);
-        pause(0.4);
     end
 end
 
