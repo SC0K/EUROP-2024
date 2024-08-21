@@ -4,7 +4,7 @@
 yalmip('clear')
 clear all
 
-h = 0.4;       % Simulation sample time (s)
+h = 0.2;       % Simulation sample time (s)
 A0 = [1 0 h 0;
       0 1 0 h;
       0 0 1 0;
@@ -16,13 +16,13 @@ B0 = [h^2/2 0;
 nx = 4; % Number of states
 nu = 2; % Number of inputs
 nd = 2; % Number of drones
-T = 500; % Number of time steps
+T = 600; % Number of time steps
 
 m = 119; % Number of scenarios
 r1 = 0.5;     % Drone proximity limits
 r2 = 0.5;
-gamma = 0.2;
-a_lim = 1;  % acceleration limit m/s^2
+gamma = 0.9;
+a_lim = 0.2;  % acceleration limit m/s^2
 
 % 4 Drones
 X = zeros(nx, nd, T+1);  % MegaState matrix (current states, drone index, Time step)
@@ -39,8 +39,8 @@ X(:,3,1) = [1;0;0;0];
 X(:,4,1) = [-1;0;0;0];
 
 % Target destinations
-targets = [6 0 0 0;
-           -6 0 0 0;
+targets = [5 0.1 0 0;
+           -5 -0.1 0 0;
            -1 0 0 0;
            1 0 0 0];
 targets = targets';
@@ -89,7 +89,7 @@ for i = 1:nd
 end
 [lx,ly] = size(combinations);
 
-r_roundabout = 2.5;
+r_roundabout = 2.6;
 D = 0.1;
 
 %% Simulation - Main
@@ -107,17 +107,17 @@ for t = 1:T
             for c = 1:ly
                 for k = 1:N 
                     hk = (X_mpc(1,1) - X(1,combinations(d,c),t))^2/r1^2 + (X_mpc(2,1) - X(2,combinations(d,c),t))^2/r2^2 - 1;     % Barrier function at k
-                    hkk = (X_mpc(1)^2 + X_mpc(2)^2)/ r_roundabout^2 -1 - (D/2)^2;
+                    hkk = (X_mpc(1)^2 + X_mpc(2)^2) - r_roundabout^2 - (D/2)^2; % Barrier for roundabout
                     X_mpc_normal = A{s}*X_mpc_normal+B{s}*u{k};
                     X_mpc = A0*X_mpc+B0*u{k}+Bd{d}*disturbance(:,k,d);
                     constraints = [constraints, -a_lim <= u{k} <= a_lim];
                     objective = objective + (X_mpc_normal-targets(:,d))'*Q*(X_mpc_normal-targets(:,d))+u{k}'*R*u{k};
                     hk1 = (X_mpc(1,1) - X(1,combinations(d,c),t))^2/r1^2 + (X_mpc(2,1) - X(2,combinations(d,c),t))^2/r2^2 - 1;     % Barrier function at k+1
-                    hkk1 = (X_mpc(1)^2 + X_mpc(2)^2)/ r_roundabout^2 - 1 - (D/2)^2;
+                    hkk1 = (X_mpc(1)^2 + X_mpc(2)^2)-  r_roundabout^2  - (D/2)^2; % Barrier for roundabout
                     constraints = [constraints, 0 <= hk1-hk+gamma*hk];
                     constraints = [constraints, -0.1<=X_mpc(3)<=0.1, -0.1<=X_mpc(4)<=0.1];
-                    if abs(X(2,d,t))<0.1 && abs(X(1,d,t)) > r_roundabout + D/2  
-                        constraints = [constraints, -D/4<=X_mpc(2)<=D/4];
+                    if abs(X(2,d,t))<D/2 && abs(X(1,d,t)) > r_roundabout + 0.75 
+                        constraints = [constraints, -D/2<=X_mpc(2)<=D/2];
                     else
                         constraints = [constraints, 0 <= hkk1 - hkk+ gamma*hkk];
                     end
@@ -127,21 +127,21 @@ for t = 1:T
         
         
         
-%% Simulation
-options = sdpsettings('verbose', 0,'cache', -1,'solver','ipopt');
-diagnostics = optimize(constraints,objective,options);
-if diagnostics.problem == 0
- disp('Solver thinks it is feasible')
-elseif diagnostics.problem == 1
- disp('Solver thinks it is infeasible')
-else
- disp('Something else happened')
-end
-
-U = value(u(:,1));
-U_rec{d}(:,t) = value(U{1});
-X(:,d,t+1) = A0*X(:,d,t)+B0*U{1}+Bd{d}*( mu + sigma * randn(2, 1));
-t
+    %% Simulation
+    options = sdpsettings('verbose', 0,'cache', -1,'solver','ipopt');
+    diagnostics = optimize(constraints,objective,options);
+    if diagnostics.problem == 0
+     disp('Solver thinks it is feasible')
+    elseif diagnostics.problem == 1
+     disp('Solver thinks it is infeasible')
+    else
+     disp('Something else happened')
+    end
+    
+    U = value(u(:,1));
+    U_rec{d}(:,t) = value(U{1});
+    X(:,d,t+1) = A0*X(:,d,t)+B0*U{1};
+    t
     end
 end
 
@@ -182,7 +182,7 @@ end
 load('States_history/states_history_bot1.mat', 'States_history1')
 load('States_history/states_history_bot2.mat', 'States_history2')
 plot(States_history1(:,1),States_history1(:,2), '-g', 'LineWidth', 2, 'DisplayName', 'Vehicle 1')
-plot(States_history2(:,1),States_history2(:,2), '-m', 'LineWidth', 2, 'DisplayName', 'Vehicle 2')
+% plot(States_history2(:,1),States_history2(:,2), '-m', 'LineWidth', 2, 'DisplayName', 'Vehicle 2')
 % Define the radii and road width
 r_inner = 2;       % Inner circle radius (meters)
 r_outer = 3.5;     % Outer circle radius (meters)

@@ -4,7 +4,7 @@ rosinit;
 clear all
 yalmip('clear')
 % Initialize variables (as in your provided code)
-h = 0.4;  % Sample time
+h = 0.2;  % Sample time
 A0 = [1 0 h 0; 0 1 0 h; 0 0 1 0; 0 0 0 1];
 B0 = [h^2/2 0; 0 h^2/2; h 0; 0 h];
 nx = 4;  % Number of states
@@ -14,11 +14,11 @@ nd = 2;  % Number of drones
 m = 119;  % Number of scenarios
 r1 = 0.6;  % Drone proximity limits
 r2 = 0.6;
-gamma = 0.1;
+gamma = 0.2;
 a_lim = 0.5;  % Acceleration limit m/s^2
 
 % Target destinations
-targets = [5.0 0.05 0 0; -5.0 0 0 0]';
+targets = [5.0 -0.01 0 0; -5.0 0.01 0 0]';
 Q = 5 * eye(nx);
 R = eye(nu);
 eta = 0.1;
@@ -69,12 +69,13 @@ state2 = zeros(4, 1);  % [pos_x; pos_y; vel_x; vel_y] for robot 2
 
 % Threshold for stopping condition
 threshold = 0.1;  % Distance to target
+States_history2 = [];
 
 % Main loop to keep running the program until robots reach the targets
 while true
     % Calculate control inputs
     tic
-    [U2,U2_1] = DI_controller1(state2, state1, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, disturbance(:, :, 2), targets(:, 2), 2.5, 0.1);
+    [U2,U2_1] = DI_controller1(state2, state1, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, disturbance(:, :, 2), targets(:, 2), 2.55, 0.2);
     if all(~isnan(U2(:))) && all(~isnan(U2_1(:)))
     
         % Publish control inputs for robot 2
@@ -118,6 +119,7 @@ while true
         msg_y2.Data = U2_1(2);
         send(cmd_accel_y_pub2, msg_y2);
         pause(0.4);
+        States_history2 = [States_history2; state2(1), state2(2)];
     end
 end
 
