@@ -15,7 +15,7 @@ m = 119;  % Number of scenarios
 r1 = 0.6;  % Drone proximity limits
 r2 = 0.6;
 gamma = 0.2;
-a_lim = 0.2;  % Acceleration limit m/s^2
+a_lim = 0.1;  % Acceleration limit m/s^2
 
 % Target destinations
 targets = [5.0 -0.01 0 0; -5.0 0.01 0 0]';
@@ -77,10 +77,11 @@ threshold = 0.1;  % Distance to target
 while true
     % Calculate control inputs
     tic
-    [U2,U2_1, feas] = DI_controller1(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{1}, disturbance(:, :, 1), targets(:, 1), 2.55, 0.2);
-    if all(~isnan(U2(:))) && all(~isnan(U2_1(:))) && feas~=1
-    
+    [U2,U2_1, feas] = DI_controller1(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{1}, disturbance(:, :, 1), targets(:, 1), 2.6, 1);
+    if all(~isnan(U2(:))) && all(~isnan(U2_1(:)))
+        
         % Publish control inputs for robot 2
+        disp(U2)
         msg_x2 = rosmessage(cmd_accel_x_pub2);
         msg_x2.Data = U2(1);
         send(cmd_accel_x_pub2, msg_x2);
@@ -90,10 +91,10 @@ while true
         send(cmd_accel_y_pub2, msg_y2);
     
         % Check if both robots have reached their targets
-        dist2 = norm(state2(1:2) - targets(1:2, 2));
+        dist1 = norm(state1(1:2) - targets(1:2, 1));
 
-        if dist2 < threshold
-            disp('Both robots have reached their targets.');
+        if dist1 < threshold
+            disp('Robot1 has reached their targets.');
             break;
         end
     
@@ -113,25 +114,25 @@ while true
         end
     
         % Publish control inputs for robot 2
-        % msg_x2 = rosmessage(cmd_accel_x_pub2);
-        % msg_x2.Data = U2_1(1);
-        % send(cmd_accel_x_pub2, msg_x2);
-        % 
-        % msg_y2 = rosmessage(cmd_accel_y_pub2);
-        % msg_y2.Data = U2_1(2);
-        % send(cmd_accel_y_pub2, msg_y2);
-        % pause(h);
+        msg_x2 = rosmessage(cmd_accel_x_pub2);
+        msg_x2.Data = U2_1(1);
+        send(cmd_accel_x_pub2, msg_x2);
+
+        msg_y2 = rosmessage(cmd_accel_y_pub2);
+        msg_y2.Data = U2_1(2);
+        send(cmd_accel_y_pub2, msg_y2);
+        pause(h);
         States_history1 = [States_history1; state1(1), state1(2)];
         States_history2 = [States_history2; state2(1), state2(2)];
-    else
-        msg_x2 = rosmessage(cmd_accel_x_pub2);
-        msg_x2.Data = 0;
-        send(cmd_accel_x_pub2, msg_x2);
-    
-        msg_y2 = rosmessage(cmd_accel_y_pub2);
-        msg_y2.Data = 0;
-        send(cmd_accel_y_pub2, msg_y2);
-        pause(h)
+    % else
+    %     msg_x2 = rosmessage(cmd_accel_x_pub2);
+    %     msg_x2.Data = 0.01;
+    %     send(cmd_accel_x_pub2, msg_x2);
+    % 
+    %     msg_y2 = rosmessage(cmd_accel_y_pub2);
+    %     msg_y2.Data = 0;
+    %     send(cmd_accel_y_pub2, msg_y2);
+    %     pause(h)
     end
     
 end

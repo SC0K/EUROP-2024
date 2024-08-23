@@ -4,7 +4,7 @@ rosinit;
 clear all
 yalmip('clear')
 % Initialize variables (as in your provided code)
-h = 0.2;  % Sample time
+h = 0.3;  % Sample time
 A0 = [1 0 h 0; 0 1 0 h; 0 0 1 0; 0 0 0 1];
 B0 = [h^2/2 0; 0 h^2/2; h 0; 0 h];
 nx = 4;  % Number of states
@@ -15,10 +15,10 @@ m = 119;  % Number of scenarios
 r1 = 0.6;  % Drone proximity limits
 r2 = 0.6;
 gamma = 0.2;
-a_lim = 0.5;  % Acceleration limit m/s^2
+a_lim = 0.1;  % Acceleration limit m/s^2
 
 % Target destinations
-targets = [5.0 -0.01 0 0; -5.0 0.01 0 0]';
+targets = [5.0 0.1 0 0; -5.0 -0.1 0 0]';
 Q = 5 * eye(nx);
 R = eye(nu);
 eta = 0.1;
@@ -75,7 +75,7 @@ States_history2 = [];
 while true
     % Calculate control inputs
     tic
-    [U2,U2_1] = DI_controller1(state2, state1, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, disturbance(:, :, 2), targets(:, 2), 2.55, 0.2);
+    [U2,U2_1] = DI_controller1(state2, state1, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, disturbance(:, :, 2), targets(:, 2), 2.6, 1);
     if all(~isnan(U2(:))) && all(~isnan(U2_1(:)))
     
         % Publish control inputs for robot 2
@@ -91,7 +91,7 @@ while true
         dist2 = norm(state2(1:2) - targets(1:2, 2));
 
         if dist2 < threshold
-            disp('Both robots have reached their targets.');
+            disp('Robot2 have reached their targets.');
             break;
         end
     
@@ -105,7 +105,7 @@ while true
         disp("elapsed time is ")
         disp(elapsed_time)
         t_average = t_total/n;
-        pause_time = 0.4 - elapsed_time;
+        pause_time = h - elapsed_time;
         if pause_time > 0
             pause(pause_time);
         end
@@ -118,7 +118,7 @@ while true
         msg_y2 = rosmessage(cmd_accel_y_pub2);
         msg_y2.Data = U2_1(2);
         send(cmd_accel_y_pub2, msg_y2);
-        pause(0.4);
+        pause(h);
         States_history2 = [States_history2; state2(1), state2(2)];
     end
 end

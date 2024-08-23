@@ -33,8 +33,8 @@ for s = 1:m
 end
 
 % Initialize states
-X(:,1,1) = [-5;0;0;0];
-X(:,2,1) = [5;0;0;0];
+X(:,1,1) = [-5;0.1;0;0];
+X(:,2,1) = [5;-0.1;0;0];
 X(:,3,1) = [1;0;0;0];
 X(:,4,1) = [-1;0;0;0];
 
@@ -89,8 +89,8 @@ for i = 1:nd
 end
 [lx,ly] = size(combinations);
 
-r_roundabout = 2.6;
-D = 0.1;
+r_roundabout = 2.6 + 0.05;
+D = 1;
 
 %% Simulation - Main
 for t = 1:T
@@ -182,7 +182,7 @@ end
 load('States_history/states_history_bot1.mat', 'States_history1')
 load('States_history/states_history_bot2.mat', 'States_history2')
 plot(States_history1(:,1),States_history1(:,2), '-g', 'LineWidth', 2, 'DisplayName', 'Vehicle 1')
-% plot(States_history2(:,1),States_history2(:,2), '-m', 'LineWidth', 2, 'DisplayName', 'Vehicle 2')
+plot(States_history2(:,1),States_history2(:,2), '-m', 'LineWidth', 2, 'DisplayName', 'Vehicle 2')
 % Define the radii and road width
 r_inner = 2;       % Inner circle radius (meters)
 r_outer = 3.5;     % Outer circle radius (meters)
