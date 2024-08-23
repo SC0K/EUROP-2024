@@ -2,7 +2,7 @@
 rosshutdown
 rosinit;
 clear all
-yalmip('clear')
+
 % Initialize variables (as in your provided code)
 h = 0.3;  % Sample time
 A0 = [1 0 h 0; 0 1 0 h; 0 0 1 0; 0 0 0 1];
@@ -12,13 +12,13 @@ nu = 2;  % Number of inputs
 nd = 2;  % Number of drones
 
 m = 119;  % Number of scenarios
-r1 = 0.6;  % Drone proximity limits
-r2 = 0.6;
+r1 = 0.4;  % Drone proximity limits
+r2 = 0.4;
 gamma = 0.2;
 a_lim = 0.1;  % Acceleration limit m/s^2
 
 % Target destinations
-targets = [5.0 -0.01 0 0; -5.0 0.01 0 0]';
+targets = [5.0 0.1 0 0; -5.0 -0.1 0 0]';
 Q = 5 * eye(nx);
 R = eye(nu);
 eta = 0.1;
@@ -54,6 +54,11 @@ t_max=0;
 n=0;
 t_total=0;
 
+% State Variables
+global state1 state2;
+state1 = zeros(4, 1);  % [pos_x; pos_y; vel_x; vel_y] for robot 1
+state2 = zeros(4, 1);  % [pos_x; pos_y; vel_x; vel_y] for robot 2
+
 % ROS Publishers
 cmd_accel_x_pub2 = rospublisher('/robot1/accel_x', 'std_msgs/Float32');
 cmd_accel_y_pub2 = rospublisher('/robot1/accel_y', 'std_msgs/Float32');
@@ -65,10 +70,13 @@ odom_sub1 = rossubscriber('/robot1/odom', 'nav_msgs/Odometry', @odom_callback1);
 States_history1 = [];
 States_history2 = [];
 
-% State Variables
-global state1 state2;
-state1 = zeros(4, 1);  % [pos_x; pos_y; vel_x; vel_y] for robot 1
-state2 = zeros(4, 1);  % [pos_x; pos_y; vel_x; vel_y] for robot 2
+% Wait until initial state values are received
+disp('Waiting for initial state values...');
+while all(state1 == 0) || all(state2 == 0)
+    pause(0.1);  % Wait for a short time before checking again
+end
+disp('Initial state values received.');
+
 
 % Threshold for stopping condition
 threshold = 0.1;  % Distance to target
@@ -76,88 +84,83 @@ threshold = 0.1;  % Distance to target
 % Main loop to keep running the program until robots reach the targets
 while true
     % Calculate control inputs
-    tic
-    [U2,U2_1, feas] = DI_controller1(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{1}, disturbance(:, :, 1), targets(:, 1), 2.6, 1);
-    if all(~isnan(U2(:))) && all(~isnan(U2_1(:)))
+    if all(state1(:)) ~= 0 && all(state2(:)) ~= 0
+        tic
+        [U2,U2_1, feas] = DI_controller1(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, disturbance(:, :, 1), targets(:, 1), 2.6, 1);
+        if all(~isnan(U2(:))) && all(~isnan(U2_1(:))) && feas ~= 1
+            
+            % Publish control inputs for robot 2
+            disp(U2)
+            msg_x2 = rosmessage(cmd_accel_x_pub2);
+            msg_x2.Data = U2(1);
+            send(cmd_accel_x_pub2, msg_x2);
         
-        % Publish control inputs for robot 2
-        disp(U2)
-        msg_x2 = rosmessage(cmd_accel_x_pub2);
-        msg_x2.Data = U2(1);
-        send(cmd_accel_x_pub2, msg_x2);
+            msg_y2 = rosmessage(cmd_accel_y_pub2);
+            msg_y2.Data = U2(2);
+            send(cmd_accel_y_pub2, msg_y2);
+        
+            % Check if both robots have reached their targets
+            dist1 = norm(state1(1:2) - targets(1:2, 1));
     
-        msg_y2 = rosmessage(cmd_accel_y_pub2);
-        msg_y2.Data = U2(2);
-        send(cmd_accel_y_pub2, msg_y2);
+            if dist1 < threshold
+                disp('Robot1 has reached their targets.');
+                break;
+            end
+        
+            % Wait until 0.2 seconds have passed since the start of the loop
+            elapsed_time = toc;  % Get the elapsed time
+            if elapsed_time>t_max
+                t_max = elapsed_time;
+            end
+            n=n+1;
+            disp("elapsed time is ")
+            disp(elapsed_time)
+            t_total = elapsed_time + t_total;
+            t_average = t_total/n;
+            pause_time = h - elapsed_time;
+            if pause_time > 0
+                pause(pause_time);
+            end
+        
+            % Publish control inputs for robot 2
+            msg_x2 = rosmessage(cmd_accel_x_pub2);
+            msg_x2.Data = U2_1(1);
+            send(cmd_accel_x_pub2, msg_x2);
     
-        % Check if both robots have reached their targets
-        dist1 = norm(state1(1:2) - targets(1:2, 1));
-
-        if dist1 < threshold
-            disp('Robot1 has reached their targets.');
-            break;
+            msg_y2 = rosmessage(cmd_accel_y_pub2);
+            msg_y2.Data = U2_1(2);
+            send(cmd_accel_y_pub2, msg_y2);
+            pause(h);
+            States_history1 = [States_history1; state1(1), state1(2)];
+            States_history2 = [States_history2; state2(1), state2(2)];
+        % else
+        %     msg_x2 = rosmessage(cmd_accel_x_pub2);
+        %     msg_x2.Data = 0.0;
+        %     send(cmd_accel_x_pub2, msg_x2);
+        % 
+        %     msg_y2 = rosmessage(cmd_accel_y_pub2);
+        %     msg_y2.Data = 0;
+        %     send(cmd_accel_y_pub2, msg_y2);
+        %     pause(h)
         end
-    
-        % Wait until 0.2 seconds have passed since the start of the loop
-        elapsed_time = toc;  % Get the elapsed time
-        if elapsed_time>t_max
-            t_max = elapsed_time;
-        end
-        n=n+1;
-        disp("elapsed time is ")
-        disp(elapsed_time)
-        t_total = elapsed_time + t_total;
-        t_average = t_total/n;
-        pause_time = h - elapsed_time;
-        if pause_time > 0
-            pause(pause_time);
-        end
-    
-        % Publish control inputs for robot 2
-        msg_x2 = rosmessage(cmd_accel_x_pub2);
-        msg_x2.Data = U2_1(1);
-        send(cmd_accel_x_pub2, msg_x2);
-
-        msg_y2 = rosmessage(cmd_accel_y_pub2);
-        msg_y2.Data = U2_1(2);
-        send(cmd_accel_y_pub2, msg_y2);
-        pause(h);
-        States_history1 = [States_history1; state1(1), state1(2)];
-        States_history2 = [States_history2; state2(1), state2(2)];
-    % else
-    %     msg_x2 = rosmessage(cmd_accel_x_pub2);
-    %     msg_x2.Data = 0.01;
-    %     send(cmd_accel_x_pub2, msg_x2);
-    % 
-    %     msg_y2 = rosmessage(cmd_accel_y_pub2);
-    %     msg_y2.Data = 0;
-    %     send(cmd_accel_y_pub2, msg_y2);
-    %     pause(h)
     end
-    
 end
 
 % Shutdown ROS
 rosshutdown;
-
 % Callback function for '/robot1/odom' topic
 function odom_callback1(~, msg)
     global state1;
-    % Update state1 based on the received odometry message
     state1(1) = msg.Pose.Pose.Position.X;
     state1(2) = msg.Pose.Pose.Position.Y;
     v_forward = msg.Twist.Twist.Linear.X;
-    % Example quaternion [w, x, y, z]
     quaternion = [msg.Pose.Pose.Orientation.W, msg.Pose.Pose.Orientation.X, msg.Pose.Pose.Orientation.Y, msg.Pose.Pose.Orientation.Z];
-    
+
     % Convert quaternion to Euler angles (in degrees)
     euler_angles = quat2eul(quaternion);
-    
-    % Convert yaw to radians if needed
-    yaw_rad = deg2rad(euler_angles(1));
 
-    state1(3) = v_forward*sin(yaw_rad);
-    state1(4) = v_forward*cos(yaw_rad);
+    state1(3) = v_forward*cos(euler_angles(1));
+    state1(4) = v_forward*sin(euler_angles(1));
 end
 
 % Callback function for '/robot2/odom' topic
@@ -166,6 +169,12 @@ function odom_callback2(~, msg)
     % Update state2 based on the received odometry message
     state2(1) = msg.Pose.Pose.Position.X;
     state2(2) = msg.Pose.Pose.Position.Y;
-    state2(3) = msg.Twist.Twist.Linear.X;
-    state2(4) = msg.Twist.Twist.Linear.Y;
+    v_forward = msg.Twist.Twist.Linear.X;
+    quaternion = [msg.Pose.Pose.Orientation.W, msg.Pose.Pose.Orientation.X, msg.Pose.Pose.Orientation.Y, msg.Pose.Pose.Orientation.Z];
+
+    % Convert quaternion to Euler angles (in degrees)
+    euler_angles = quat2eul(quaternion);
+
+    state2(3) = v_forward*cos(euler_angles(1));
+    state2(4) = v_forward*sin(euler_angles(1));
 end

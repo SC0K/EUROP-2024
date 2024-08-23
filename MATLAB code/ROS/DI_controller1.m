@@ -18,8 +18,8 @@ function [U1,U2,feas] = DI_controller1(state_main,state1,N, A0, B0, Q, R, QN, r1
         hkk1 = (state_main_update(1)^2 + state_main_update(2)^2) - r_roundabout^2 - (D/2)^2;
         constraints = [constraints, -a_lim <= u{k} <= a_lim, 0 <= hk1-hk+gamma*hk];
         constraints = [constraints, -0.1<=state_main_update(3)<=0.1, -0.1<=state_main_update(4)<=0.1];  % Speed limits
-        if abs(state_main(2))<0.2 && abs(state_main(1)) > r_roundabout + 0.5
-            constraints = [constraints, -0.2<=state_main_update(2)<=0.2];
+        if abs(state_main(2))<0.4 && abs(state_main(1)) > r_roundabout + D/2
+            constraints = [constraints, -0.3<=state_main_update(2)<=0.3];
         else
             constraints = [constraints, 0 <= hkk1 - hkk+ gamma*hkk];
         end
@@ -31,7 +31,7 @@ function [U1,U2,feas] = DI_controller1(state_main,state1,N, A0, B0, Q, R, QN, r1
      disp('Solver thinks it is feasible')
      feas = 0;
     elseif diagnostics.problem == 1
-     disp('Solver thinks it is infeasible')
+     fprintf(2, 'Solver thinks it is infeasible\n');
      feas = 1;
     else
      disp('Something else happened')
