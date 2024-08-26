@@ -21,8 +21,8 @@ T = 600; % Number of time steps
 m = 119; % Number of scenarios
 r1 = 0.5;     % Drone proximity limits
 r2 = 0.5;
-gamma = 0.9;
-a_lim = 0.2;  % acceleration limit m/s^2
+gamma = 0.2;
+a_lim = 0.05;  % acceleration limit m/s^2
 
 % 4 Drones
 X = zeros(nx, nd, T+1);  % MegaState matrix (current states, drone index, Time step)
@@ -89,7 +89,7 @@ for i = 1:nd
 end
 [lx,ly] = size(combinations);
 
-r_roundabout = 2.6 + 0.05;
+r_roundabout = 2.6;
 D = 1;
 
 %% Simulation - Main
@@ -154,7 +154,7 @@ end
 %% Plotting Trajectories
 figure;
 hold on;
-
+load('States_history/X2.mat', 'X')
 % Plot the trajectory of each drone with lines
 for drone_idx = 1:nd
     % Extract the x and y positions of the drone over time
@@ -170,8 +170,8 @@ for drone_idx = 1:nd
     % Extract the initial and final positions
     initial_x = X(1,  drone_idx, 1);
     initial_y = X(2,  drone_idx, 1);
-    final_x = X(1,  drone_idx, T+1);
-    final_y = X(2,  drone_idx, T+1);
+    final_x = X(1,  drone_idx, length(X(1,1,:)));
+    final_y = X(2,  drone_idx, length(X(1,1,:)));
     
     % Plot the initial position
     plot(initial_x, initial_y, 's', 'MarkerSize', 15, 'DisplayName', ['Initial Position Vehicle ' num2str(drone_idx)]);
@@ -179,8 +179,8 @@ for drone_idx = 1:nd
     % Plot the final position
     plot(final_x, final_y, 'd', 'MarkerSize', 15, 'DisplayName', ['Final Position Vehicle ' num2str(drone_idx)]);
 end
-load('States_history/states_history_bot1.mat', 'States_history1')
-load('States_history/states_history_bot2.mat', 'States_history2')
+load('States_history/states_history_bot1-2.mat', 'States_history1')
+load('States_history/states_history_bot2-2.mat', 'States_history2')
 plot(States_history1(:,1),States_history1(:,2), '-g', 'LineWidth', 2, 'DisplayName', 'Vehicle 1')
 plot(States_history2(:,1),States_history2(:,2), '-m', 'LineWidth', 2, 'DisplayName', 'Vehicle 2')
 % Define the radii and road width

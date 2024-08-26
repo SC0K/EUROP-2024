@@ -4,7 +4,7 @@ rosinit;
 clear all
 
 % Initialize variables (as in your provided code)
-h = 0.3;  % Sample time
+h = 0.2;  % Sample time
 A0 = [1 0 h 0; 0 1 0 h; 0 0 1 0; 0 0 0 1];
 B0 = [h^2/2 0; 0 h^2/2; h 0; 0 h];
 nx = 4;  % Number of states
@@ -15,7 +15,7 @@ m = 119;  % Number of scenarios
 r1 = 0.4;  % Drone proximity limits
 r2 = 0.4;
 gamma = 0.2;
-a_lim = 0.1;  % Acceleration limit m/s^2
+a_lim = 0.05;  % Acceleration limit m/s^2
 
 % Target destinations
 targets = [5.0 0.1 0 0; -5.0 -0.1 0 0]';
@@ -29,7 +29,7 @@ sigma = 1;
 rng(1234);  % Setting the seed
 
 for j = 1:nd
-    Bd{j} = 5/1000*(-1)^(j+1)*[eye(2); zeros(2, 2)];
+    Bd{j} = 5/1000*(-1)^(j+1)*[eye(2); zeros(2, 2)];    % since we are taking the maximum of the disturbances, Bd is negative for all.
 end
 
 for s = 1:m
@@ -84,7 +84,7 @@ while true
     if all(state1(:)) ~= 0 && all(state2(:)) ~= 0
         tic
         [U2,U2_1,feas] = DI_controller1(state2, state1, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, disturbance(:, :, 2), targets(:, 2), 2.6, 1);
-        if all(~isnan(U2(:))) && all(~isnan(U2_1(:))) && feas ~= 1
+        if all(~isnan(U2(:))) && all(~isnan(U2_1(:)))
         
             % Publish control inputs for robot 2
             msg_x2 = rosmessage(cmd_accel_x_pub2);
@@ -103,7 +103,7 @@ while true
                 break;
             end
         
-            % Wait until 0.4 seconds have passed since the start of the loop
+            % Wait until h seconds have passed since the start of the loop
             elapsed_time = toc;  % Get the elapsed time
             if elapsed_time>t_max
                 t_max = elapsed_time;
@@ -117,12 +117,11 @@ while true
             if pause_time > 0
                 pause(pause_time);
             end
-        
-            % Publish control inputs for robot 2
+
             msg_x2 = rosmessage(cmd_accel_x_pub2);
             msg_x2.Data = U2_1(1);
             send(cmd_accel_x_pub2, msg_x2);
-        
+
             msg_y2 = rosmessage(cmd_accel_y_pub2);
             msg_y2.Data = U2_1(2);
             send(cmd_accel_y_pub2, msg_y2);
