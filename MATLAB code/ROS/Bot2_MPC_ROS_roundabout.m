@@ -29,7 +29,7 @@ sigma = 1;
 rng(1234);  % Setting the seed
 
 for j = 1:nd
-    Bd{j} = 5/1000*(-1)^(j+1)*[eye(2); zeros(2, 2)];    % since we are taking the maximum of the disturbances, Bd is negative for all.
+    Bd{j} = 5/1000*(-1)^(j+1)*[eye(2); eye(2)];    % since we are taking the maximum of the disturbances, Bd is negative for all.
 end
 
 for s = 1:m

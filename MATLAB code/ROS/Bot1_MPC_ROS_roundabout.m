@@ -11,7 +11,7 @@ nx = 4;  % Number of states
 nu = 2;  % Number of inputs
 nd = 2;  % Number of drones
 
-m = 119;  % Number of scenarios
+m = 10;  % Number of scenarios
 r1 = 0.4;  % Drone proximity limits
 r2 = 0.4;
 gamma = 0.2;
@@ -29,7 +29,7 @@ sigma = 1;
 rng(1234);  % Setting the seed
 
 for j = 1:nd
-    Bd{j} = 5/1000*(-1)^(j+1)*[eye(2); zeros(2, 2)];    % since we are taking the maximum of the disturbances, Bd is negative for all.
+    Bd{j} = 5/1000*(-1)^(j+1)*[eye(2); eye(2)];    % since we are taking the maximum of the disturbances, Bd is negative for all.
 end
 
 for s = 1:m
@@ -87,7 +87,8 @@ while true
     % Calculate control inputs
     if all(state1(:)) ~= 0 && all(state2(:)) ~= 0
         tic
-        [U2,U2_1, feas] = DI_controller1(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, disturbance(:, :, 2), targets(:, 1), 2.6, 1);
+        % [U2,U2_1, feas] = DI_controller1(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, disturbance(:, :, 2), targets(:, 1), 2.6, 1);
+         [U2,U2_1, feas] = DI_controller3(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, dis(:, :, :, 1),m, targets(:, 1), 2.6, 1.5);
         if all(~isnan(U2(:))) && all(~isnan(U2_1(:)))
             
             % Publish control inputs for robot 2

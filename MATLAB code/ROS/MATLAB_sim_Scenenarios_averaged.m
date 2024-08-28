@@ -1,5 +1,6 @@
 % Roundabout simulation - MATLAB
-% I think this is better than the lincear (absolute value) version
+% Adding scenarios to the MPC - using averaged value of disturbances
+% instead of all objectives as constraints.
 
 yalmip('clear')
 clear all
@@ -18,10 +19,10 @@ nu = 2; % Number of inputs
 nd = 2; % Number of drones
 T = 600; % Number of time steps
 
-m = 119; % Number of scenarios
+m = 59; % Number of scenarios
 r1 = 0.5;     % Drone proximity limits
 r2 = 0.5;
-gamma = 0.2;
+gamma = 0.9;
 a_lim = 0.05;  % acceleration limit m/s^2
 
 % 4 Drones
@@ -52,7 +53,7 @@ targets = targets';
 Q = 5*eye(nx);
 R = 1*eye(nu);
 eta = 0.1;
-N = 5;  % MPC Horizon
+N = 3;  % MPC Horizon
 
 %% Define the mean and standard deviation for disturbance
 mu = 0;
@@ -79,6 +80,13 @@ for d = 1:nd
         end
 end
 
+for r = 1:2
+for d = 1:nd
+    for n = 1:N 
+        dis_avg(r,n,d) =  mean(dis(r,:,n,d));
+    end
+end
+end
 
 
 combinations = zeros(nd, nd-1);
@@ -92,6 +100,7 @@ end
 r_roundabout = 2.6;
 D = 1;
 
+
 %% Simulation - Main
 for t = 1:T
     for d = 1:nd
@@ -104,11 +113,11 @@ for t = 1:T
         constraints = [];
         objective = 0;
 %% MPC and CBF
-            for c = 1:ly
+           for c = 1:ly
                 for k = 1:N 
                     hk = (X_mpc(1,1) - X(1,combinations(d,c),t))^2/r1^2 + (X_mpc(2,1) - X(2,combinations(d,c),t))^2/r2^2 - 1;     % Barrier function at k
                     hkk = (X_mpc(1)^2 + X_mpc(2)^2) - r_roundabout^2 - (D/2)^2; % Barrier for roundabout
-                    X_mpc_normal = A{s}*X_mpc_normal+B{s}*u{k};
+                    X_mpc_normal = A{s}*X_mpc_normal+B{s}*u{k}+Bd{d}*dis_avg(:,k,d);
                     X_mpc = A0*X_mpc+B0*u{k}+Bd{d}*disturbance(:,k,d);
                     constraints = [constraints, -a_lim <= u{k} <= a_lim];
                     objective = objective + (X_mpc_normal-targets(:,d))'*Q*(X_mpc_normal-targets(:,d))+u{k}'*R*u{k};
@@ -140,7 +149,7 @@ for t = 1:T
     
     U = value(u(:,1));
     U_rec{d}(:,t) = value(U{1});
-    X(:,d,t+1) = A0*X(:,d,t)+B0*U{1};
+    X(:,d,t+1) = A0*X(:,d,t)+B0*U{1} + Bd{d}*( mu + sigma * randn(2, 1));
     t
     end
 end
