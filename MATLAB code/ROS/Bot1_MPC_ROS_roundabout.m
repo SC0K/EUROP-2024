@@ -11,14 +11,14 @@ nx = 4;  % Number of states
 nu = 2;  % Number of inputs
 nd = 2;  % Number of drones
 
-m = 10;  % Number of scenarios
+m = 119;  % Number of scenarios
 r1 = 0.4;  % Drone proximity limits
 r2 = 0.4;
 gamma = 0.2;
-a_lim = 0.05;  % Acceleration limit m/s^2
+a_lim = 0.04;  % Acceleration limit m/s^2
 
 % Target destinations
-targets = [5.0 0.1 0 0; -5.0 -0.1 0 0]';
+targets = [4.0 0.2 0 0; -5.0 -0.1 0 0]';
 Q = 5 * eye(nx);
 R = eye(nu);
 eta = 0.1;
@@ -48,28 +48,31 @@ for d = 1:nd
     end
 end
 
+load('States_history/disturbance.mat', 'disturbance')
+
 QN = idare(A0, B0, Q, R, [], []);
 
 t_max=0;
 n=0;
 t_total=0;
 
-% State Variables
-global state1 state2;
-state1 = zeros(4, 1);  % [pos_x; pos_y; vel_x; vel_y] for robot 1
-state2 = zeros(4, 1);  % [pos_x; pos_y; vel_x; vel_y] for robot 2
-
 % ROS Publishers
 cmd_accel_x_pub2 = rospublisher('/robot1/accel_x', 'std_msgs/Float32');
 cmd_accel_y_pub2 = rospublisher('/robot1/accel_y', 'std_msgs/Float32');
 
 % ROS Subscribers
-
 odom_sub1 = rossubscriber('/robot1/odom', 'nav_msgs/Odometry', @odom_callback1);
 odom_sub2 = rossubscriber('/robot2/odom', 'nav_msgs/Odometry', @odom_callback2);
 
-States_history1 = [];
+% State Variables
+global state1 state2;
+state2 = zeros(4, 1);  % [pos_x; pos_y; vel_x; vel_y] for robot 2
+state1 = zeros(4, 1);  % [pos_x; pos_y; vel_x; vel_y] for robot 1
 
+
+% Threshold for stopping condition
+threshold = 0.1;  % Distance to target
+States_history1 = [];
 
 % Wait until initial state values are received
 disp('Waiting for initial state values...');
@@ -78,67 +81,62 @@ while all(state1 == 0) || all(state2 == 0)
 end
 disp('Initial state values received.');
 
-
-% Threshold for stopping condition
-threshold = 0.1;  % Distance to target
-
 % Main loop to keep running the program until robots reach the targets
 while true
     % Calculate control inputs
     if all(state1(:)) ~= 0 && all(state2(:)) ~= 0
         tic
-        % [U2,U2_1, feas] = DI_controller1(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, disturbance(:, :, 2), targets(:, 1), 2.6, 1);
-         [U2,U2_1, feas] = DI_controller3(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, dis(:, :, :, 1),m, targets(:, 1), 2.6, 1.5);
-        if all(~isnan(U2(:))) && all(~isnan(U2_1(:)))
-            
+        [U,U_1,feas] = DI_controller1(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, disturbance(:, :, 2), targets(:, 1), 2.75, 0.8);
+        if all(~isnan(U(:))) && all(~isnan(U_1(:)))
+        
             % Publish control inputs for robot 2
             msg_x2 = rosmessage(cmd_accel_x_pub2);
-            msg_x2.Data = U2(1);
+            msg_x2.Data = U(1);
             send(cmd_accel_x_pub2, msg_x2);
         
             msg_y2 = rosmessage(cmd_accel_y_pub2);
-            msg_y2.Data = U2(2);
+            msg_y2.Data = U(2);
             send(cmd_accel_y_pub2, msg_y2);
         
             % Check if both robots have reached their targets
-            dist1 = norm(state1(1:2) - targets(1:2, 1));
+            dist = norm(state1(1:2) - targets(1:2, 1));
     
-            if dist1 < threshold
-                disp('Robot1 has reached their targets.');
+            if dist < threshold
+                disp('Robot1 have reached its target.');
                 break;
             end
         
-            % Wait until 0.2 seconds have passed since the start of the loop
+            % Wait until h seconds have passed since the start of the loop
             elapsed_time = toc;  % Get the elapsed time
             if elapsed_time>t_max
                 t_max = elapsed_time;
             end
             n=n+1;
+            t_total = elapsed_time + t_total;
             disp("elapsed time is ")
             disp(elapsed_time)
-            t_total = elapsed_time + t_total;
             t_average = t_total/n;
             pause_time = h - elapsed_time;
             if pause_time > 0
                 pause(pause_time);
             end
-        
+
             msg_x2 = rosmessage(cmd_accel_x_pub2);
-            msg_x2.Data = U2_1(1);
+            msg_x2.Data = U_1(1);
             send(cmd_accel_x_pub2, msg_x2);
 
             msg_y2 = rosmessage(cmd_accel_y_pub2);
-            msg_y2.Data = U2_1(2);
+            msg_y2.Data = U_1(2);
             send(cmd_accel_y_pub2, msg_y2);
             pause(h);
             States_history1 = [States_history1; state1(1), state1(2)];
-      
         end
     end
 end
 
 % Shutdown ROS
 rosshutdown;
+
 % Callback function for '/robot1/odom' topic
 function odom_callback1(~, msg)
     global state1;

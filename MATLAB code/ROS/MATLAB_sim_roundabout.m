@@ -16,13 +16,13 @@ B0 = [h^2/2 0;
 nx = 4; % Number of states
 nu = 2; % Number of inputs
 nd = 2; % Number of drones
-T = 600; % Number of time steps
+T = 500; % Number of time steps
 
 m = 119; % Number of scenarios
 r1 = 0.5;     % Drone proximity limits
 r2 = 0.5;
 gamma = 0.2;
-a_lim = 0.05;  % acceleration limit m/s^2
+a_lim = 0.04;  % acceleration limit m/s^2
 
 % 4 Drones
 X = zeros(nx, nd, T+1);  % MegaState matrix (current states, drone index, Time step)
@@ -89,8 +89,8 @@ for i = 1:nd
 end
 [lx,ly] = size(combinations);
 
-r_roundabout = 2.6;
-D = 1;
+r_roundabout = 2.75;
+D = 0.8;
 
 %% Simulation - Main
 for t = 1:T
@@ -115,8 +115,8 @@ for t = 1:T
                     hk1 = (X_mpc(1,1) - X(1,combinations(d,c),t))^2/r1^2 + (X_mpc(2,1) - X(2,combinations(d,c),t))^2/r2^2 - 1;     % Barrier function at k+1
                     hkk1 = (X_mpc(1)^2 + X_mpc(2)^2)-  r_roundabout^2  - (D/2)^2; % Barrier for roundabout
                     constraints = [constraints, 0 <= hk1-hk+gamma*hk];
-                    constraints = [constraints, -0.1<=X_mpc(3)<=0.1, -0.1<=X_mpc(4)<=0.1];
-                    if abs(X(2,d,t))<D/2 && abs(X(1,d,t)) > r_roundabout + 0.75 
+                    constraints = [constraints, -0.15<=X_mpc(3)<=0.15, -0.15<=X_mpc(4)<=0.15];
+                    if abs(X(2,d,t))<0.2 && abs(X(1,d,t)) > r_roundabout + D/2 
                         constraints = [constraints, -D/2<=X_mpc(2)<=D/2];
                     else
                         constraints = [constraints, 0 <= hkk1 - hkk+ gamma*hkk];
@@ -154,9 +154,9 @@ end
 %% Plotting Trajectories
 figure;
 hold on;
-load('States_history/X2.mat', 'X')
+% load('States_history/X3.mat', 'X')
 % Plot the trajectory of each drone with lines
-for drone_idx = 1:nd
+for drone_idx = 1:2
     % Extract the x and y positions of the drone over time
     x_positions = squeeze(X(1,  drone_idx, :));  % x positions
     y_positions = squeeze(X(2,  drone_idx, :));  % y positions
@@ -179,8 +179,8 @@ for drone_idx = 1:nd
     % Plot the final position
     plot(final_x, final_y, 'd', 'MarkerSize', 15, 'DisplayName', ['Final Position Vehicle ' num2str(drone_idx)]);
 end
-load('States_history/states_history_bot1-2.mat', 'States_history1')
-load('States_history/states_history_bot2-2.mat', 'States_history2')
+load('States_history/states_history_bot1-5.mat', 'States_history1')
+load('States_history/states_history_bot2-5.mat', 'States_history2')
 plot(States_history1(:,1),States_history1(:,2), '-g', 'LineWidth', 2, 'DisplayName', 'Vehicle 1')
 plot(States_history2(:,1),States_history2(:,2), '-m', 'LineWidth', 2, 'DisplayName', 'Vehicle 2')
 % Define the radii and road width

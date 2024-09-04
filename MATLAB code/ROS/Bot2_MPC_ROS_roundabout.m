@@ -15,7 +15,7 @@ m = 119;  % Number of scenarios
 r1 = 0.4;  % Drone proximity limits
 r2 = 0.4;
 gamma = 0.2;
-a_lim = 0.05;  % Acceleration limit m/s^2
+a_lim = 0.04;  % Acceleration limit m/s^2
 
 % Target destinations
 targets = [5.0 0.1 0 0; -5.0 -0.1 0 0]';
@@ -83,7 +83,7 @@ while true
     % Calculate control inputs
     if all(state1(:)) ~= 0 && all(state2(:)) ~= 0
         tic
-        [U2,U2_1,feas] = DI_controller1(state2, state1, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, disturbance(:, :, 2), targets(:, 2), 2.6, 1);
+        [U2,U2_1,feas] = DI_controller1(state2, state1, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, disturbance(:, :, 2), targets(:, 2), 2.75, 0.8);
         if all(~isnan(U2(:))) && all(~isnan(U2_1(:)))
         
             % Publish control inputs for robot 2
@@ -99,7 +99,7 @@ while true
             dist2 = norm(state2(1:2) - targets(1:2, 2));
     
             if dist2 < threshold
-                disp('Robot2 have reached their targets.');
+                disp('Robot2 have reached its target.');
                 break;
             end
         
