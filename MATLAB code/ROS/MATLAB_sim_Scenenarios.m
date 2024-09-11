@@ -1,5 +1,5 @@
 % Roundabout simulation - MATLAB
-% Adding scenarios to the MPC 
+% Adding scenarios to the MPC objevtive
 
 yalmip('clear')
 clear all
@@ -22,7 +22,7 @@ m = 10; % Number of scenarios
 r1 = 0.5;     % Drone proximity limits
 r2 = 0.5;
 gamma = 0.2;
-a_lim = 0.1;  % acceleration limit m/s^2
+a_lim = 0.05;  % acceleration limit m/s^2
 
 % 4 Drones
 X = zeros(nx, nd, T+1);  % MegaState matrix (current states, drone index, Time step)
@@ -89,8 +89,8 @@ for i = 1:nd
 end
 [lx,ly] = size(combinations);
 
-r_roundabout = 2.6;
-D = 1.5;
+r_roundabout = 2.75;
+D = 0.8;
 
 
 %% Simulation - Main

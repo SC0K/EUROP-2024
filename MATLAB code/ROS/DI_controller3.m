@@ -1,5 +1,5 @@
 function [U1,U2,feas] = DI_controller3(state_main,state1,N, A0, B0, Q, R, QN, r1, r2, gamma,eta, a_lim, Bd, dis,m, target,r_roundabout,D)
-%DI_CONTROLLER1 - Scenorio based MPC
+%DI_CONTROLLER1 - Scenorio based MPC - Scenarios added to the objective
     % input: state_main - state of robot that we calculate, state1 - state of the other robot, N - MPC
     % horizon, D - road width, r_roundabout - roundabout radius
     % Output: U1, U2, feas: first and second accelerations control signal forthe main robot, feasibility of solution.

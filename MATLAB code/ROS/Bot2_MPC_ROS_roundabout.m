@@ -15,7 +15,7 @@ m = 119;  % Number of scenarios
 r1 = 0.4;  % Drone proximity limits
 r2 = 0.4;
 gamma = 0.2;
-a_lim = 0.04;  % Acceleration limit m/s^2
+a_lim = 0.035;  % Acceleration limit m/s^2
 
 % Target destinations
 targets = [5.0 0.1 0 0; -5.0 -0.1 0 0]';

@@ -15,14 +15,14 @@ B0 = [h^2/2 0;
       0 h];
 nx = 4; % Number of states
 nu = 2; % Number of inputs
-nd = 2; % Number of drones
+nd = 4; % Number of drones
 T = 500; % Number of time steps
 
 m = 119; % Number of scenarios
 r1 = 0.5;     % Drone proximity limits
 r2 = 0.5;
 gamma = 0.2;
-a_lim = 0.04;  % acceleration limit m/s^2
+a_lim = 0.05;  % acceleration limit m/s^2
 
 % 4 Drones
 X = zeros(nx, nd, T+1);  % MegaState matrix (current states, drone index, Time step)
@@ -33,16 +33,16 @@ for s = 1:m
 end
 
 % Initialize states
-X(:,1,1) = [-5;0.1;0;0];
-X(:,2,1) = [5;-0.1;0;0];
-X(:,3,1) = [1;0;0;0];
-X(:,4,1) = [-1;0;0;0];
+X(:,1,1) = [-5;0.12;0;0];
+X(:,2,1) = [5;-0.12;0;0];
+X(:,3,1) = [0.1;5;0;0];
+X(:,4,1) = [-0.1;-5;0;0];
 
 % Target destinations
-targets = [5 0.1 0 0;
-           -5 -0.1 0 0;
-           -1 0 0 0;
-           1 0 0 0];
+targets = [5 0.2 0 0;
+           -5 -0.2 0 0;
+           0.2 -5 0 0;
+           -0.2 5 0 0];
 targets = targets';
 
 
@@ -52,7 +52,7 @@ targets = targets';
 Q = 5*eye(nx);
 R = 1*eye(nu);
 eta = 0.1;
-N = 5;  % MPC Horizon
+N = 3;  % MPC Horizon
 
 %% Define the mean and standard deviation for disturbance
 mu = 0;
@@ -90,7 +90,7 @@ end
 [lx,ly] = size(combinations);
 
 r_roundabout = 2.75;
-D = 0.8;
+D = 0.3;
 
 %% Simulation - Main
 for t = 1:T
@@ -115,7 +115,7 @@ for t = 1:T
                     hk1 = (X_mpc(1,1) - X(1,combinations(d,c),t))^2/r1^2 + (X_mpc(2,1) - X(2,combinations(d,c),t))^2/r2^2 - 1;     % Barrier function at k+1
                     hkk1 = (X_mpc(1)^2 + X_mpc(2)^2)-  r_roundabout^2  - (D/2)^2; % Barrier for roundabout
                     constraints = [constraints, 0 <= hk1-hk+gamma*hk];
-                    constraints = [constraints, -0.15<=X_mpc(3)<=0.15, -0.15<=X_mpc(4)<=0.15];
+                    constraints = [constraints, -0.2<=X_mpc(3)<=0.2, -0.2<=X_mpc(4)<=0.2];
                     if abs(X(2,d,t))<0.2 && abs(X(1,d,t)) > r_roundabout + D/2 
                         constraints = [constraints, -D/2<=X_mpc(2)<=D/2];
                     else
@@ -154,9 +154,9 @@ end
 %% Plotting Trajectories
 figure;
 hold on;
-% load('States_history/X3.mat', 'X')
+load('States_history/X4BOTS.mat', 'X')
 % Plot the trajectory of each drone with lines
-for drone_idx = 1:2
+for drone_idx = 1:nd
     % Extract the x and y positions of the drone over time
     x_positions = squeeze(X(1,  drone_idx, :));  % x positions
     y_positions = squeeze(X(2,  drone_idx, :));  % y positions
@@ -179,10 +179,12 @@ for drone_idx = 1:nd
     % Plot the final position
     plot(final_x, final_y, 'd', 'MarkerSize', 15, 'DisplayName', ['Final Position Vehicle ' num2str(drone_idx)]);
 end
-load('States_history/states_history_bot1-5.mat', 'States_history1')
 load('States_history/states_history_bot2-5.mat', 'States_history2')
+States_history1 = -States_history2;
+load('States_history/states_history_bot2_withdist.mat', 'States_history2')
 plot(States_history1(:,1),States_history1(:,2), '-g', 'LineWidth', 2, 'DisplayName', 'Vehicle 1')
 plot(States_history2(:,1),States_history2(:,2), '-m', 'LineWidth', 2, 'DisplayName', 'Vehicle 2')
+% plot(States_history3(:,1),States_history(:,2), '-m', 'LineWidth', 2, 'DisplayName', 'Vehicle 2')
 % Define the radii and road width
 r_inner = 2;       % Inner circle radius (meters)
 r_outer = 3.5;     % Outer circle radius (meters)
@@ -190,7 +192,8 @@ road_width = 1.5;  % Road width (meters)
 
 % Create the circle for the roundabout
 theta1 = linspace(0, 2*pi, 100);
-theta2 = linspace(atan(road_width/2/r_outer), pi-atan(road_width/2/r_outer), 100);
+theta2 = linspace(atan(road_width/2/r_outer), pi/2-atan(road_width/2/r_outer), 100);
+theta3 = linspace(pi/2+atan(road_width/2/r_outer), pi-atan(road_width/2/r_outer), 100);
 
 
 % Inner and outer circle coordinates
@@ -200,6 +203,10 @@ x_outer1 = r_outer * cos(theta2);
 y_outer1 = r_outer * sin(theta2);
 x_outer2 = r_outer * cos(-theta2);
 y_outer2 = r_outer * sin(-theta2);
+x_outer3 = r_outer * cos(theta3);
+y_outer3 = r_outer * sin(theta3);
+x_outer4 = r_outer * cos(-theta3);
+y_outer4 = r_outer * sin(-theta3);
 
 % Plot the inner and outer circles
 % fill(x_inner, y_inner, 'w', 'EdgeColor', 'k');  % Inner circle
@@ -207,7 +214,8 @@ y_outer2 = r_outer * sin(-theta2);
 plot(x_inner,y_inner, 'k', 'LineWidth', 2, 'HandleVisibility', 'off')
 plot(x_outer1, y_outer1, 'k', 'LineWidth', 2, 'HandleVisibility', 'off')
 plot(x_outer2, y_outer2, 'k', 'LineWidth', 2, 'HandleVisibility', 'off')
-
+plot(x_outer3, y_outer3, 'k', 'LineWidth', 2, 'HandleVisibility', 'off')
+plot(x_outer4, y_outer4, 'k', 'LineWidth', 2, 'HandleVisibility', 'off')
 
 % Define the roads leading out of the roundabout
 road_length = 3.5;  % Length of the road segments
@@ -221,6 +229,16 @@ plot(x_road1, y_road1_lower, 'k', 'LineWidth', 2, 'HandleVisibility', 'off');
 
 plot(-x_road1, y_road1_upper, 'k', 'LineWidth', 2, 'HandleVisibility', 'off');
 plot(-x_road1, y_road1_lower, 'k', 'LineWidth', 2, 'HandleVisibility', 'off');
+
+% Road 2 (vertical)
+y_road2 = [r_outer-0.1, r_outer + road_length];
+x_road2_upper = [road_width/2, road_width/2];
+x_road2_lower = [-road_width/2, -road_width/2];
+plot(x_road2_upper, y_road2, 'k', 'LineWidth', 2, 'HandleVisibility', 'off');
+plot(x_road2_lower, y_road2, 'k', 'LineWidth', 2, 'HandleVisibility', 'off');
+
+plot(x_road2_upper, -y_road2, 'k', 'LineWidth', 2, 'HandleVisibility', 'off');
+plot(x_road2_lower, -y_road2, 'k', 'LineWidth', 2, 'HandleVisibility', 'off');
 
 % Add labels and legend
 xlabel('X Position');
