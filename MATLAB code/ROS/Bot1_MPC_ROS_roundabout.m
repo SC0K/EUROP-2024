@@ -4,7 +4,7 @@ rosinit;
 clear all
 
 % Initialize variables (as in your provided code)
-h = 0.2;  % Sample time
+h = 0.3;  % Sample time
 A0 = [1 0 h 0; 0 1 0 h; 0 0 1 0; 0 0 0 1];
 B0 = [h^2/2 0; 0 h^2/2; h 0; 0 h];
 nx = 4;  % Number of states
@@ -15,7 +15,7 @@ m = 119;  % Number of scenarios
 r1 = 0.4;  % Drone proximity limits
 r2 = 0.4;
 gamma = 0.2;
-a_lim = 0.04;  % Acceleration limit m/s^2
+a_lim = 0.035;  % Acceleration limit m/s^2
 
 % Target destinations
 targets = [5.0 0.2 0 0; -5.0 -0.1 0 0]';
@@ -47,8 +47,6 @@ for d = 1:nd
         disturbance(2, n, d) = max(dis(2, :, n, d));
     end
 end
-
-load('States_history/disturbance.mat', 'disturbance')
 
 QN = idare(A0, B0, Q, R, [], []);
 
@@ -86,7 +84,7 @@ while true
     % Calculate control inputs
     if all(state1(:)) ~= 0 && all(state2(:)) ~= 0
         tic
-        [U,U_1,feas] = DI_controller1(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, disturbance(:, :, 2), targets(:, 1), 2.75, 0.8);
+        [U,U_1,feas] = DI_controller1_copy(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{1}, disturbance(:, :, 1), targets(:, 1), 2.75, 1);
         % [U,U_1,feas] = DI_controller3(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, dis(:,:,:,1), targets(:, 1), 2.75, 0.8);
         if all(~isnan(U(:))) && all(~isnan(U_1(:)))
             % Publish control inputs for robot 2

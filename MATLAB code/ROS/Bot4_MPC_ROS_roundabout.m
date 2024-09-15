@@ -18,7 +18,7 @@ gamma = 0.2;
 a_lim = 0.055;  % Acceleration limit m/s^2
 
 % Target destinations
-targets = [0.1 -5 0 0; -0.1 5 0 0]';
+targets = [0.2 -5 0 0; -0.2 5 0 0]';
 Q = 5 * eye(nx);
 R = eye(nu);
 eta = 0.1;
@@ -83,7 +83,7 @@ while true
     % Calculate control inputs
     if all(state1(:)) ~= 0 && all(state2(:)) ~= 0
         tic
-        [U2,U2_1,feas] = DI_controller1_vert(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{1}, disturbance(:, :, 2), targets(:, 2), 2.75, 1);
+        [U2,U2_1,feas] = DI_controller1_vert(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{1}, disturbance(:, :, 2), targets(:, 2), 2.75, 0.2);
         % [U2,U2_1,feas] = DI_controller3(state1, state2, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, dis(:,:,:,1),m, targets(:, 1), 2.75, 0.8);
         if all(~isnan(U2(:))) && all(~isnan(U2_1(:)))
         

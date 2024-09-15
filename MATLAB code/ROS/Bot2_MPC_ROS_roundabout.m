@@ -83,7 +83,7 @@ while true
     % Calculate control inputs
     if all(state1(:)) ~= 0 && all(state2(:)) ~= 0
         tic
-        [U2,U2_1,feas] = DI_controller1(state2, state1, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, disturbance(:, :, 2), targets(:, 2), 2.75, 0.8);
+        [U2,U2_1,feas] = DI_controller1_copy(state2, state1, N, A0, B0, Q, R, QN, r1, r2, gamma, eta, a_lim, Bd{2}, disturbance(:, :, 2), targets(:, 2), 2.75, 1);
         if all(~isnan(U2(:))) && all(~isnan(U2_1(:)))
         
             % Publish control inputs for robot 2

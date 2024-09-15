@@ -15,7 +15,7 @@ B0 = [h^2/2 0;
       0 h];
 nx = 4; % Number of states
 nu = 2; % Number of inputs
-nd = 4; % Number of drones
+nd = 2; % Number of drones
 T = 500; % Number of time steps
 
 m = 119; % Number of scenarios
@@ -90,7 +90,7 @@ end
 [lx,ly] = size(combinations);
 
 r_roundabout = 2.75;
-D = 0.3;
+D = 1;
 
 %% Simulation - Main
 for t = 1:T
@@ -107,19 +107,21 @@ for t = 1:T
             for c = 1:ly
                 for k = 1:N 
                     hk = (X_mpc(1,1) - X(1,combinations(d,c),t))^2/r1^2 + (X_mpc(2,1) - X(2,combinations(d,c),t))^2/r2^2 - 1;     % Barrier function at k
-                    hkk = (X_mpc(1)^2 + X_mpc(2)^2) - r_roundabout^2 - (D/2)^2; % Barrier for roundabout
+                    hkk = (X_mpc(1)^2 + X_mpc(2)^2) - (r_roundabout + 0.5 - (D/2))^2; % Barrier for roundabout, offset is added due to the wall thickness
+                    hkko = (X_mpc(1)^2 + X_mpc(2)^2) - (r_roundabout + 0.5 + (D/2))^2; % Barrier for roundabout
                     X_mpc_normal = A{s}*X_mpc_normal+B{s}*u{k};
                     X_mpc = A0*X_mpc+B0*u{k}+Bd{d}*disturbance(:,k,d);
                     constraints = [constraints, -a_lim <= u{k} <= a_lim];
                     objective = objective + (X_mpc_normal-targets(:,d))'*Q*(X_mpc_normal-targets(:,d))+u{k}'*R*u{k};
                     hk1 = (X_mpc(1,1) - X(1,combinations(d,c),t))^2/r1^2 + (X_mpc(2,1) - X(2,combinations(d,c),t))^2/r2^2 - 1;     % Barrier function at k+1
-                    hkk1 = (X_mpc(1)^2 + X_mpc(2)^2)-  r_roundabout^2  - (D/2)^2; % Barrier for roundabout
+                    hkk1 = (X_mpc(1)^2 + X_mpc(2)^2)-  (r_roundabout + 0.5 - (D/2))^2; % Barrier for roundabout
+                    hkko1 = (X_mpc(1)^2 + X_mpc(2)^2) - (r_roundabout + 0.5 + (D/2))^2;
                     constraints = [constraints, 0 <= hk1-hk+gamma*hk];
                     constraints = [constraints, -0.2<=X_mpc(3)<=0.2, -0.2<=X_mpc(4)<=0.2];
                     if abs(X(2,d,t))<0.2 && abs(X(1,d,t)) > r_roundabout + D/2 
                         constraints = [constraints, -D/2<=X_mpc(2)<=D/2];
                     else
-                        constraints = [constraints, 0 <= hkk1 - hkk+ gamma*hkk];
+                        constraints = [constraints, 0 <= hkk1 - hkk+ gamma*hkk, 0 >= hkko1 - hkko+ gamma*hkko];
                     end
                 end
                 objective = objective + eta*(X_mpc_normal-targets(:,d))'*QN*(X_mpc_normal-targets(:,d));
@@ -154,7 +156,7 @@ end
 %% Plotting Trajectories
 figure;
 hold on;
-load('States_history/X4BOTS.mat', 'X')
+load('States_history/X2BOTS.mat', 'X')
 % Plot the trajectory of each drone with lines
 for drone_idx = 1:nd
     % Extract the x and y positions of the drone over time
@@ -179,12 +181,14 @@ for drone_idx = 1:nd
     % Plot the final position
     plot(final_x, final_y, 'd', 'MarkerSize', 15, 'DisplayName', ['Final Position Vehicle ' num2str(drone_idx)]);
 end
-load('States_history/states_history_bot2-5.mat', 'States_history2')
-States_history1 = -States_history2;
-load('States_history/states_history_bot2_withdist.mat', 'States_history2')
+load('States_history/states_history_bot1-7.mat', 'States_history1')
+load('States_history/states_history_bot2-7.mat', 'States_history2')
+load('States_history/states_history_bot3-1.mat', 'States_history3')
+load('States_history/states_history_bot4-1.mat', 'States_history4')
 plot(States_history1(:,1),States_history1(:,2), '-g', 'LineWidth', 2, 'DisplayName', 'Vehicle 1')
 plot(States_history2(:,1),States_history2(:,2), '-m', 'LineWidth', 2, 'DisplayName', 'Vehicle 2')
-% plot(States_history3(:,1),States_history(:,2), '-m', 'LineWidth', 2, 'DisplayName', 'Vehicle 2')
+plot(States_history3(:,1),States_history3(:,2), '-', 'LineWidth', 2, 'DisplayName', 'Vehicle 3')
+plot(States_history4(:,1),States_history4(:,2), '-', 'LineWidth', 2, 'DisplayName', 'Vehicle 4')
 % Define the radii and road width
 r_inner = 2;       % Inner circle radius (meters)
 r_outer = 3.5;     % Outer circle radius (meters)

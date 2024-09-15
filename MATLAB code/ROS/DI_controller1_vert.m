@@ -10,12 +10,14 @@ function [U1,U2,feas] = DI_controller1_vert(state_main,state_bot2, N, A0, B0, Q,
     state_main_normal = state_main;
     for k = 1: N
         hk = (state_main_update(1) - state_bot2(1))^2/r1^2 + (state_main_update(2)-state_bot2(2))^2/r2^2 - 1;
-        hkk = (state_main_update(1)^2 + state_main_update(2)^2)-  r_roundabout^2- (D/2)^2;
+        hkk = (state_main_update(1)^2 + state_main_update(2)^2)-  (r_roundabout + 0.5 - D/2)^2;
+        hkko = (state_main_update(1)^2 + state_main_update(2)^2)-  (r_roundabout - 0.5 + D/2)^2;
         state_main_update = A0*state_main_update + B0* u{k} + Bd*disturbances(:,k);
         state_main_normal = A0*state_main_normal + B0* u{k};
         objective = objective + (state_main_normal - target)'*Q*(state_main_normal-target) + u{k}'*R*u{k};
         hk1 = (state_main_update(1) - state_bot2(1))^2/r1^2 + (state_main_update(2)-state_bot2(2))^2/r2^2 - 1;
-        hkk1 = (state_main_update(1)^2 + state_main_update(2)^2) - r_roundabout^2 - (D/2)^2;
+        hkk1 = (state_main_update(1)^2 + state_main_update(2)^2) - (r_roundabout + 0.5 - D/2)^2;
+        hkko1 = (state_main_update(1)^2 + state_main_update(2)^2)-  (r_roundabout - 0.5 + D/2)^2;
         constraints = [constraints, -a_lim <= u{k} <= a_lim, 0 <= hk1-hk+gamma*hk];
         constraints = [constraints, -0.15<=state_main_update(3)<=0.15, -0.15<=state_main_update(4)<=0.15];  % Speed limits
         if abs(state_main(1))<0.2 && abs(state_main(2)) > r_roundabout + D/2
