@@ -108,33 +108,25 @@ for t = 1:T
                 for k = 1:N 
                     hk = (X_mpc(1,1) - X(1,combinations(d,c),t))^2/r1^2 + (X_mpc(2,1) - X(2,combinations(d,c),t))^2/r2^2 - 1;     % Barrier function at k
                     hkk = (X_mpc(1)^2 + X_mpc(2)^2) - (r_roundabout + 0.5 - (D/2))^2; % Barrier for roundabout, offset is added due to the wall thickness
-                    hkko = (X_mpc(1)^2 + X_mpc(2)^2) - (r_roundabout - 0.5 + (D/2))^2; % Barrier for roundabout
-                    % Update states
+                    hkko = (X_mpc(1)^2 + X_mpc(2)^2) - (r_roundabout + 0.5 + (D/2))^2; % Barrier for roundabout
                     X_mpc_normal = A{s}*X_mpc_normal+B{s}*u{k};
                     X_mpc = A0*X_mpc+B0*u{k}+Bd{d}*disturbance(:,k,d);
-
                     constraints = [constraints, -a_lim <= u{k} <= a_lim];
                     objective = objective + (X_mpc_normal-targets(:,d))'*Q*(X_mpc_normal-targets(:,d))+u{k}'*R*u{k};
-
                     hk1 = (X_mpc(1,1) - X(1,combinations(d,c),t))^2/r1^2 + (X_mpc(2,1) - X(2,combinations(d,c),t))^2/r2^2 - 1;     % Barrier function at k+1
                     hkk1 = (X_mpc(1)^2 + X_mpc(2)^2)-  (r_roundabout + 0.5 - (D/2))^2; % Barrier for roundabout
-                    hkko1 = (X_mpc(1)^2 + X_mpc(2)^2) - (r_roundabout - 0.5 + (D/2))^2;
+                    hkko1 = (X_mpc(1)^2 + X_mpc(2)^2) - (r_roundabout + 0.5 + (D/2))^2;
                     constraints = [constraints, 0 <= hk1-hk+gamma*hk];
                     constraints = [constraints, -0.2<=X_mpc(3)<=0.2, -0.2<=X_mpc(4)<=0.2];
-                    if d == 1 || d == 2
+                    if d == 1 | d == 2
                         if abs(X(2,d,t))<D/2 && abs(X(1,d,t)) > r_roundabout + D/2 
                             constraints = [constraints, -D/2<=X_mpc(2)<=D/2];
                         else
                             constraints = [constraints, 0 <= hkk1 - hkk+ gamma*hkk, 0 >= hkko1 - hkko+ gamma*hkko];
                         end
                     else
-                        if abs(X(1,d,t))<D/2 && abs(X(2,d,t)) > r_roundabout + D/2 
-                            constraints = [constraints, -D/2<=X_mpc(1)<=D/2];
-                        else
-                            constraints = [constraints, 0 <= hkk1 - hkk+ gamma*hkk, 0 >= hkko1 - hkko+ gamma*hkko];
-                        end
                     end
-
+                    
                 end
                 objective = objective + eta*(X_mpc_normal-targets(:,d))'*QN*(X_mpc_normal-targets(:,d));
             end
